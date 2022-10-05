@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <button onclick="init()" id="btn">Check</button>
+    <h2 id="message"></h2>
+</body>
+<script>
+    function getPermission() {
+        if (Notification.permission !== "granted") {
+            const req = Notification.requestPermission(() => 'hola')
+        }
+    }
+    function init() {
+        if (Notification.permission !== "granted") {
+            const req = Notification.requestPermission(() => 'hola')
+        }
+        console.log(`Notification permission: ${Notification.permission == "granted"}`);
+        document.querySelector('#btn').disabled = true
+        const bookingUrl = 'https://www.pvrcinemas.com/moviesessions/Chennai/PONNIYIN-SELVAN-PART-1/NHO00018009?language=TAMIL&cinemaType=PXL'
+        const url = 'https://api1.pvrcinemas.com/PVRCinemasCMS/api/content/msessionsnew'
+        const data = {
+            lat: 28.5363974,
+            lng: 77.27057889999999,
+            city: 'Chennai',
+            av: 5.1,
+            pt: 'WEBSITE',
+            did: 60047079321664966822226,
+            userId: 0,
+            date: '2022-10-09',
+            mid: 'NHO00018009'
+        }
+        let formData = new FormData();
+        Object.keys(data).forEach(key => formData.append(key, data[key]))
+        // Object.keys(data).forEach(key => {
+        //     console.log(formData.get(key))
+        // })
+        const plainFormData = Object.fromEntries(formData.entries());
+        const formDataJsonString = JSON.stringify(plainFormData);
+        setTimeout(() => {
+            const notification = new Notification('Initial notification!!', {
+                body: 'Initial notification',
+                requireInteraction: false,
+                silent: true
+            })
+        }, 20000)
+        let interval = setInterval(async () => {
+            const res = await fetch(url, {
+                method: 'POST',
+                // headers: {
+                //     'content-type': 'multipart/form-data'
+                // },
+                body: formData
+            })
+            const dt = await res.json()
+            const cinemas = dt?.output?.cinemas;
+            const pvr = cinemas.find(cn => cn.cid == 173)
+            const xlScreen = pvr.childs.find(sc => sc.ccid === 'VRXL')
+            const screen = xlScreen.sws[0];
+            const shows = screen.s
+            if (shows.length > 1) {
+                setTimeout(() => {
+                    alert('new shows added!!')
+                }, 5000)
+                const notification = new Notification('New shows added!!', {
+                    body: 'New shows added',
+                    requireInteraction: false,
+                    silent: false
+                })
+            }
+            // check shows
+            console.log({ shows })
+            shows.forEach(show => {
+                console.log({ show })
+                if (show.st === '07:50 AM') {
+                    console.log('Morning show')
+                }
+                if (show.st === '11:30 AM') {
+                    setTimeout(() => {
+                        alert('11.30 show added!!')
+                    }, 5000)
+                    const notification = new Notification('11.30 show added!!', {
+                        body: '11.30 show added',
+                        requireInteraction: true,
+                        silent: false
+                    })
+                    document.querySelector('#message').innerHTML = `
+                <a href=${bookingUrl} target='_blank'>booking page</a>
+                `
+                    clearInterval(interval);
+                }
+            })
+            // console.log(shows)
+            // console.log(pvr)
+            // console.log(dt?.output?.cinemas)
+            if (interval) {
+                document.querySelector('#btn').disabled = true
+                document.querySelector('#btn').textContent = 'Checking';
+            } else {
+                document.querySelector('#btn').disabled = false
+            }
+        }, 60000)
+    }
+    getPermission();
+</script>
+
+</html>
